@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 
+// test difference
 /* function diffLines(a: string, b: string) {
 const aLines = a.split("\n");
 const bLines = b.split("\n");
@@ -10,7 +11,7 @@ const bLines = b.split("\n");
 const max = Math.max(aLines.length, bLines.length);
 const result = [];
 
-for (let i = 0; i < max; i++) {
+for (let i = 0; i < max; i++) 
 const lineA = aLines[i];
 const lineB = bLines[i];
 
