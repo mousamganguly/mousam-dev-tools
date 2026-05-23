@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 
-// test difference
+// test diff
 /* function diffLines(a: string, b: string) {
 const aLines = a.split("\n");
 const bLines = b.split("\n");
