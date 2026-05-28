@@ -4,7 +4,6 @@ import { useState } from "react";
 import Link from "next/link";
 import { PDFDocument } from "pdf-lib";
 import JSZip from "jszip";
-import { saveAs } from "file-saver";
 
 export default function PdfSplitterPage() {
     const [file, setFile] =
@@ -19,16 +18,20 @@ export default function PdfSplitterPage() {
     const [loading, setLoading] =
         useState(false);
 
+    // Parse: 2,5,7
     const parsePageList = (
         text: string
     ) => {
         return text
             .split(",")
-            .map((x) => parseInt(x.trim()))
+            .map((x) =>
+                parseInt(x.trim())
+            )
             .filter((x) => !isNaN(x))
             .map((x) => x - 1);
     };
 
+    // Parse: 1-5,6-10
     const parseRanges = (
         text: string
     ) => {
@@ -52,10 +55,43 @@ export default function PdfSplitterPage() {
             });
     };
 
+    const downloadBlob = (
+        blob: Blob,
+        filename: string
+    ) => {
+        const url =
+            window.URL.createObjectURL(
+                blob
+            );
+
+        const a =
+            document.createElement(
+                "a"
+            );
+
+        a.href = url;
+        a.download = filename;
+
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        window.URL.revokeObjectURL(
+            url
+        );
+    };
+
     const splitPDF = async () => {
         if (!file) {
             alert(
                 "Please upload a PDF"
+            );
+            return;
+        }
+
+        if (!input.trim()) {
+            alert(
+                "Please enter page numbers or ranges"
             );
             return;
         }
@@ -71,8 +107,12 @@ export default function PdfSplitterPage() {
                     bytes
                 );
 
-            // MODE 1:
-            // Extract pages
+            const totalPages =
+                pdf.getPageCount();
+
+            // ==========================
+            // MODE 1: Extract pages
+            // ==========================
             if (
                 mode === "extract"
             ) {
@@ -81,38 +121,77 @@ export default function PdfSplitterPage() {
                         input
                     );
 
+                const validPages =
+                    pages.filter(
+                        (page) =>
+                            page >= 0 &&
+                            page <
+                                totalPages
+                    );
+
+                if (
+                    validPages.length ===
+                    0
+                ) {
+                    alert(
+                        "No valid pages found"
+                    );
+                    return;
+                }
+
                 const newPdf =
                     await PDFDocument.create();
 
                 const copiedPages =
                     await newPdf.copyPages(
                         pdf,
-                        pages
+                        validPages
                     );
 
                 copiedPages.forEach(
                     (page) =>
-                        newPdf.addPage(page)
+                        newPdf.addPage(
+                            page
+                        )
                 );
 
                 const pdfBytes =
                     await newPdf.save();
 
-                saveAs(
+                const blob =
                     new Blob(
-                        [pdfBytes]
-                    ),
+                        [
+                            pdfBytes as BlobPart,
+                        ],
+                        {
+                            type: "application/pdf",
+                        }
+                    );
+
+                downloadBlob(
+                    blob,
                     "selected-pages.pdf"
                 );
             }
 
-            // MODE 2:
-            // Split by ranges
+            // ==========================
+            // MODE 2: Split by ranges
+            // ==========================
             else {
                 const ranges =
                     parseRanges(
                         input
                     );
+
+                if (
+                    ranges.length ===
+                    0
+                ) {
+                    alert(
+                        "Invalid range input"
+                    );
+                    return;
+                }
 
                 const zip =
                     new JSZip();
@@ -128,6 +207,26 @@ export default function PdfSplitterPage() {
                         end,
                     } = ranges[i];
 
+                    const safeStart =
+                        Math.max(
+                            0,
+                            start
+                        );
+
+                    const safeEnd =
+                        Math.min(
+                            totalPages -
+                                1,
+                            end
+                        );
+
+                    if (
+                        safeStart >
+                        safeEnd
+                    ) {
+                        continue;
+                    }
+
                     const newPdf =
                         await PDFDocument.create();
 
@@ -135,15 +234,15 @@ export default function PdfSplitterPage() {
                         Array.from(
                             {
                                 length:
-                                    end -
-                                    start +
+                                    safeEnd -
+                                    safeStart +
                                     1,
                             },
                             (
                                 _,
                                 idx
                             ) =>
-                                start +
+                                safeStart +
                                 idx
                         );
 
@@ -166,7 +265,8 @@ export default function PdfSplitterPage() {
                         await newPdf.save();
 
                     zip.file(
-                        `part-${i + 1
+                        `part-${
+                            i + 1
                         }.pdf`,
                         pdfBytes
                     );
@@ -179,7 +279,7 @@ export default function PdfSplitterPage() {
                         }
                     );
 
-                saveAs(
+                downloadBlob(
                     zipBlob,
                     "split-pdf.zip"
                 );
@@ -205,7 +305,6 @@ export default function PdfSplitterPage() {
 
     return (
         <main className="min-h-screen bg-[#FFF8E8] p-8">
-
             <div className="mx-auto max-w-4xl">
 
                 <Link
@@ -220,11 +319,9 @@ export default function PdfSplitterPage() {
                 </h1>
 
                 <p className="mt-3 text-slate-600">
-                    Extract
-                    specific pages
-                    or split PDFs
-                    by custom
-                    ranges.
+                    Extract specific
+                    pages or split PDFs
+                    by custom ranges.
                 </p>
 
                 <div className="mt-8 rounded-2xl bg-white p-6 shadow-sm">
@@ -247,9 +344,14 @@ export default function PdfSplitterPage() {
                             id="pdf-upload"
                             type="file"
                             accept="application/pdf"
-                            onChange={(e) =>
+                            onChange={(
+                                e
+                            ) =>
                                 setFile(
-                                    e.target.files?.[0] || null
+                                    e
+                                        .target
+                                        .files?.[0] ||
+                                        null
                                 )
                             }
                             className="hidden"
@@ -257,18 +359,19 @@ export default function PdfSplitterPage() {
 
                         {file && (
                             <p className="mt-3 text-sm text-slate-600">
-                                Selected file:{" "}
+                                Selected
+                                file:{" "}
                                 <span className="font-medium">
-                                    {file.name}
+                                    {
+                                        file.name
+                                    }
                                 </span>
                             </p>
                         )}
-
                     </div>
 
                     {/* Mode */}
                     <div className="mt-6">
-
                         <label className="font-medium">
                             Mode
                         </label>
@@ -299,15 +402,13 @@ export default function PdfSplitterPage() {
                                 ranges
                             </option>
                         </select>
-
                     </div>
 
                     {/* Input */}
                     <div className="mt-6">
-
                         <label className="font-medium">
                             {mode ===
-                                "extract"
+                            "extract"
                                 ? "Pages (example: 2,5,7)"
                                 : "Ranges (example: 1-5,6-10)"}
                         </label>
@@ -326,11 +427,17 @@ export default function PdfSplitterPage() {
                                         .value
                                 )
                             }
+                            placeholder={
+                                mode ===
+                                "extract"
+                                    ? "2,5,7"
+                                    : "1-5,6-10"
+                            }
                             className="mt-2 w-full rounded-xl border p-3"
                         />
-
                     </div>
 
+                    {/* Buttons */}
                     <div className="mt-6 flex gap-3">
 
                         <button
@@ -352,11 +459,8 @@ export default function PdfSplitterPage() {
                         >
                             Clear
                         </button>
-
                     </div>
-
                 </div>
-
             </div>
         </main>
     );
