@@ -120,6 +120,33 @@ export default function Home() {
               </p>
             </Link>
 
+            <Link
+              href="/pgp-generator"
+              className="rounded-2xl bg-[#FFFDF8] border border-orange-100 p-6 shadow-sm hover:shadow-md transition"
+            >
+              <h3 className="text-lg font-semibold text-[#5A3B2A]">
+                PGP Key Generator
+              </h3>
+
+              <p className="mt-2 text-sm text-slate-500">
+                Generate secure PGP public and
+                private keys.
+              </p>
+            </Link>
+
+            <Link
+              href="/pdf-splitter"
+              className="rounded-2xl bg-[#FFFDF8] border border-orange-100 p-6 shadow-sm hover:shadow-md transition"
+            >
+              <h3 className="text-lg font-semibold text-[#5A3B2A]">
+                PDF Splitter
+              </h3>
+
+              <p className="mt-2 text-sm text-slate-500">
+                Extract pages or split PDFs by ranges.
+              </p>
+            </Link>
+
           </div>
         </div>
 
