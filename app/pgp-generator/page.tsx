@@ -44,7 +44,7 @@ export default function PGPGeneratorPage() {
                 generated =
                     await openpgp.generateKey({
                         type: "ecc",
-                        curve: "curve25519",
+                        curve: "ed25519",
                         userIDs,
                         passphrase,
                     });
