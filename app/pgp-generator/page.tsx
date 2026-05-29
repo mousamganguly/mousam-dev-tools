@@ -44,7 +44,8 @@ export default function PGPGeneratorPage() {
                 generated =
                     await openpgp.generateKey({
                         type: "ecc",
-                        curve: "ed25519",
+                        curve:
+                            "ed25519" as openpgp.EllipticCurveName,
                         userIDs,
                         passphrase,
                     });
